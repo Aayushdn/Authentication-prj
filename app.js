@@ -35,8 +35,8 @@ const userSchema = new mongoose.Schema({
   username: String,
   password: String,
   googleId: String,
-  facebookId: String
-
+  facebookId: String,
+  secret:String,
 });
 
 userSchema.plugin(passportLocalMongoose)
@@ -125,15 +125,53 @@ app.get("/logout", (req, res) => {
 })
 
 app.get("/secret", (req, res) => {
-  if (req.isAuthenticated()) {
-    res.render("secrets")
-    console.log(req.user);
+  if (req.isAuthenticated()){
+    Users.find({"secret":{$ne:null}},(err,foundUser)=>{
+      if (err){
+        console.log(err);
+      }
+      else{
+        if (foundUser){
+          console.log(foundUser);
+          res.render("secrets",{userWithSecret:foundUser})
+        }
+      }
+    })
   }
-  else {
-    res.redirect("login")
+  else{
+    res.redirect("/login")
+  }
+  
+})
+
+app.get("/submit",(req,res) =>{
+  if (req.isAuthenticated()){
+    res.render("submit")
+  }
+  else{
+    res.redirect("/login")
   }
 })
 
+app.post("/submit",(req,res) =>{
+  const submittedSecret = req.body.secret;
+  userID = req.user.id
+  Users.findById(userID,(err,foundUser) =>{
+    if (err){
+      console.log(err);
+    }
+    else{
+      if (foundUser){
+        foundUser.secret = submittedSecret
+        foundUser.save(()=>{
+          res.redirect("/secret")
+        })
+      }
+
+    }
+  })
+
+})
 
 app.post("/register", (req, res) => {
   Users.register({ username: req.body.username }, req.body.password, function (err, user) {
